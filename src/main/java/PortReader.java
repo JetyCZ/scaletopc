@@ -9,25 +9,14 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PortReader {
+    private static ServerSend serverSend = new ServerSend();
     public static void main(String[] args) {
         SerialPort comPort = getSerialPort(args);
 
         InputStream inputStream = null;
 
         InputStream finalInputStream = inputStream;
-        Signal.handle(new Signal("INT"), new SignalHandler() {
-            // Signal handler method
-            public void handle(Signal signal) {
-                try {
-                    System.out.println("Closing input stream...");
-                    finalInputStream.close();
-                    System.out.println("Closing input stream OK...");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                comPort.closePort();
-            }
-        });
+        addInterruptHandler(comPort, finalInputStream);
 
         try
         {
@@ -46,14 +35,30 @@ public class PortReader {
         }
     }
 
+    private static void addInterruptHandler(SerialPort comPort, InputStream finalInputStream) {
+        Signal.handle(new Signal("INT"), new SignalHandler() {
+            // Signal handler method
+            public void handle(Signal signal) {
+                try {
+                    System.out.println("Closing input stream...");
+                    finalInputStream.close();
+                    System.out.println("Closing input stream OK...");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                comPort.closePort();
+            }
+        });
+    }
+
     private static SerialPort getSerialPort(String[] args) {
         SerialPort[] commPorts = SerialPort.getCommPorts();
         int idx = 0;
         for (SerialPort commPort : commPorts) {
             System.out.println((idx++)+ " PORT: " + commPort.getDescriptivePortName() +", " + commPort.getSystemPortName());
         }
-        SerialPort comPort = commPorts[1];
-        comPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
+        SerialPort comPort = commPorts[0];
+        comPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 0, 0);
 
         comPort.setBaudRate(9600);
         comPort.setNumDataBits(7);
@@ -65,21 +70,19 @@ public class PortReader {
 
     private static boolean readBytes(InputStream inputStream) throws IOException, InterruptedException {
         try {
-            byte[] readBuffer = inputStream.readNBytes(38*2);
+            byte[] readBuffer = new byte[38*2];
+            int readBytes = inputStream.read(readBuffer, 0, 38 * 2);
             int byteIdx = -1;
             for (byte one : readBuffer) {
                 byteIdx++;
                 if (one == 0xA) {
-                    // @C␍000.000␍400.000␍U0000.0␍T00000.0␍␊
-                    // ￀ￃﾍ000.000ﾍﾴ00.000ﾍU0000.0ﾍￔ00000.0ﾍ
                     byte[] read = subArray(readBuffer, byteIdx + 1, byteIdx + 37);
 
 /*
 40 42 	@B
-0d 30 30 32 2e 33 36 36   0d 34 30 30 2e 30 30 30 	␍<tab>002.366<tab>400.000
-0d 55 30 30 30 30 2e 30   0d 54 30 30 30 30 30 2e 	␍<tab>U0000.0<tab>T00000.
-30 0d 0a                                          	0␍␊␊
-[07:10:55:099] @B␍002.366␍400.000␍U0000.0␍T00000.0␍␊
+0d 30 30 32 2e 33 36 36   0d 34 30 30 2e 30 30 30 	?<tab>002.366<tab>400.000
+0d 55 30 30 30 30 2e 30   0d 54 30 30 30 30 30 2e 	?<tab>U0000.0<tab>T00000.
+30 0d 0a                                          	0???
 */
 
                     List a = new ArrayList<>();
@@ -89,10 +92,10 @@ public class PortReader {
                         bIdx++;
                     }
 /*
-‘0’ Net Weight 0x30
-‘4’ Tare Weight 0x34
-‘U’ Unit Price 0x55
-‘T’ Total Price 0x54
+'0' Net Weight 0x30
+'4' Tare Weight 0x34
+'U' Unit Price 0x55
+'T' Total Price 0x54
 */
                     List r = new ArrayList();
                     byte statusFlag = read[0];
@@ -102,7 +105,7 @@ public class PortReader {
                     int tareWeight = toWeight(read, 12);
                     int unitPrice = toUnitPrice(read, 20);
                     int totalPrice = toTotalPrice(read, 28);
-                    System.out.println("NET\t"+netWeight + "\tTare\t"+tareWeight+"\tUnit"+unitPrice+"\tTOT\t"+totalPrice);
+                    scaleRead(netWeight, tareWeight, unitPrice, totalPrice);
                     return false;
                 }
             }
@@ -112,6 +115,11 @@ public class PortReader {
             return false;
         }
 
+    }
+
+    private static void scaleRead(int netWeight, int tareWeight, int unitPrice, int totalPrice) {
+        System.out.println(ServerSend.secondsFromStart() + "NET\t"+netWeight + "\tTare\t"+tareWeight+"\tUnit"+unitPrice+"\tTOT\t"+totalPrice);
+        System.out.println(serverSend.sendToServer(netWeight));
     }
 
     private static int toWeight(byte[] read, int startIdx) {
