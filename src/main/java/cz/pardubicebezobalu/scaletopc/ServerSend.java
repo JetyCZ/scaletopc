@@ -14,18 +14,23 @@ public class ServerSend {
     boolean sendToServer(int digits) {
         StringBuffer response = null;
         try {
-            long timeFromLastSend = System.currentTimeMillis() - lastTimeSent;
-            boolean shouldRefresh
+            long thisTimeSent = System.currentTimeMillis();
+            long timeFromLastSend = thisTimeSent - lastTimeSent;
+            boolean shouldSendNewData
                     = (lastTimeSent==-1) ||
                     (timeFromLastSend >5000);
-            if (!shouldRefresh && lastSendToServer==digits) {
+
+            if (!shouldSendNewData && timeFromLastSend<1000) {
+                return false;
+            }
+            if (!shouldSendNewData && lastSendToServer==digits) {
                     // return "not sent, same request " + digits + " send " + ((int) timeFromLastSend/1000) + " seconds ago";
                     return false;
             }
             lastSendToServer = digits;
-            lastTimeSent = System.currentTimeMillis();
-             
-            String url = "http://www.pardubicebezobalu.cz/admin313uriemy/vaha.php?vaha="+digits;
+
+            String url = "http://www.pardubicebezobalu.cz/admin313uriemy/vaha.php?vaha="+digits + "&time="+thisTimeSent;
+            lastTimeSent = thisTimeSent;
             // System.out.println(url);
             URL obj = new URL(url);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
