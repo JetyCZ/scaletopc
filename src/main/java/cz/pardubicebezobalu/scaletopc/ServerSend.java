@@ -1,5 +1,6 @@
+package cz.pardubicebezobalu.scaletopc;
+
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -39,8 +40,8 @@ public class ServerSend {
                 response.append(inputLine);
             }
             in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Error sending " + digits + " to server, please check if WIFI/internet is ON: " + e.getMessage());
             return "-1";
         }
 //print result

@@ -1,3 +1,4 @@
+package cz.pardubicebezobalu.scaletopc;
 import com.fazecast.jSerialComm.SerialPort;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -23,6 +24,8 @@ public class PortReader {
             try {
                 comPort.openPort();
                 inputStream = comPort.getInputStream();
+                System.out.println("Starting to read data from " + comPort.getDescriptivePortName());
+                System.out.println("If nothing appears here, please check that scale is on (if it is not off).");
                 while(true) {
                     readBytes(inputStream);
                     Thread.sleep(10);
