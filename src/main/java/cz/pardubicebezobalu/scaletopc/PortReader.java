@@ -123,7 +123,7 @@ public class PortReader {
         String msg = ServerSend.secondsFromStart() + "NET\t" + netWeight + "\tTare\t" + tareWeight + "\tUnit" + unitPrice + "\tTOT\t" + totalPrice;
         try {
             if (serverSend.sendToServer(netWeight)) {
-                System.out.println("Váha přečtena a odeslána\t" + netWeight);
+                System.out.println("Vaha prectena a odeslana:\t" + netWeight);
             }
         } catch (Exception e) {
             System.out.println("ERROR SENDING\t" + msg);
