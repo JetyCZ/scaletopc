@@ -14,11 +14,14 @@ public class ServerSend {
     String sendToServer(int digits) {
         StringBuffer response = null;
         try {
-            /*if (lastSendToServer==digits) {
+            boolean shouldRefresh
+                    = (lastTimeSent==-1) ||
+                    ((System.currentTimeMillis()-lastTimeSent)>2000);
+            if (!shouldRefresh && lastSendToServer==digits) {
                     return digits + " not sent";
             }
             lastSendToServer = digits;
-            */
+            lastTimeSent = System.currentTimeMillis();
              
             String url = "http://www.pardubicebezobalu.cz/vaha.php?vaha="+digits;
 
