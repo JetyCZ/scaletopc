@@ -11,20 +11,22 @@ public class ServerSend {
 
     int lastSendToServer = -1;
     long lastTimeSent = -1;
-    String sendToServer(int digits) {
+    boolean sendToServer(int digits) {
         StringBuffer response = null;
         try {
+            long timeFromLastSend = System.currentTimeMillis() - lastTimeSent;
             boolean shouldRefresh
                     = (lastTimeSent==-1) ||
-                    ((System.currentTimeMillis()-lastTimeSent)>2000);
+                    (timeFromLastSend >5000);
             if (!shouldRefresh && lastSendToServer==digits) {
-                    return digits + " not sent";
+                    // return "not sent, same request " + digits + " send " + ((int) timeFromLastSend/1000) + " seconds ago";
+                    return false;
             }
             lastSendToServer = digits;
             lastTimeSent = System.currentTimeMillis();
              
-            String url = "http://www.pardubicebezobalu.cz/vaha.php?vaha="+digits;
-
+            String url = "http://www.pardubicebezobalu.cz/admin313uriemy/vaha.php?vaha="+digits;
+            // System.out.println(url);
             URL obj = new URL(url);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
@@ -32,7 +34,6 @@ public class ServerSend {
             con.setRequestMethod("GET");
 
             int responseCode = con.getResponseCode();
-            System.out.println("\n"+ secondsFromStart() + "Sending 'GET' request to URL : " + url + " " + responseCode);
 
             BufferedReader in = new BufferedReader(
                     new InputStreamReader(con.getInputStream()));
@@ -44,11 +45,10 @@ public class ServerSend {
             }
             in.close();
         } catch (Exception e) {
-            System.out.println("Error sending " + digits + " to server, please check if WIFI/internet is ON: " + e.getMessage());
-            return "-1";
+            throw new IllegalStateException("Error sending " + digits + " to server, please check if WIFI/internet is ON: " + e.getMessage());
         }
 //print result
-        return response.toString();
+        return true;
     }
 
     public static String secondsFromStart() {

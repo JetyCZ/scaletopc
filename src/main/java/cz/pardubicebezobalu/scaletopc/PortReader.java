@@ -28,7 +28,6 @@ public class PortReader {
                 System.out.println("If nothing appears here, please check that scale is on (if it is not off).");
                 while(true) {
                     readBytes(inputStream);
-                    Thread.sleep(10);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -121,8 +120,15 @@ public class PortReader {
     }
 
     private static void scaleRead(int netWeight, int tareWeight, int unitPrice, int totalPrice) {
-        System.out.println(ServerSend.secondsFromStart() + "NET\t"+netWeight + "\tTare\t"+tareWeight+"\tUnit"+unitPrice+"\tTOT\t"+totalPrice);
-        System.out.println(serverSend.sendToServer(netWeight));
+        String msg = ServerSend.secondsFromStart() + "NET\t" + netWeight + "\tTare\t" + tareWeight + "\tUnit" + unitPrice + "\tTOT\t" + totalPrice;
+        try {
+            if (serverSend.sendToServer(netWeight)) {
+                System.out.println("Váha přečtena a odeslána\t" + netWeight);
+            }
+        } catch (Exception e) {
+            System.out.println("ERROR SENDING\t" + msg);
+            System.out.println(e.getMessage());
+        }
     }
 
     private static int toWeight(byte[] read, int startIdx) {
