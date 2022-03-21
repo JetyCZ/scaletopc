@@ -1,6 +1,5 @@
+import cz.pardubicebezobalu.scaletopc.PortReader;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class PortReaderTest {
 

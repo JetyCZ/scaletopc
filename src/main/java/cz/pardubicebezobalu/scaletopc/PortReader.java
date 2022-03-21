@@ -12,6 +12,7 @@ import java.util.List;
 public class PortReader {
     private static ServerSend serverSend = new ServerSend();
     public static void main(String[] args) {
+        System.out.println("Starting port reader");
         SerialPort comPort = getSerialPort(args);
 
         InputStream inputStream = null;
@@ -22,18 +23,51 @@ public class PortReader {
         try
         {
             try {
-                comPort.openPort();
-                inputStream = comPort.getInputStream();
-                System.out.println("Starting to read data from " + comPort.getDescriptivePortName());
-                System.out.println("If nothing appears here, please check that scale is on (if it is not off).");
+                inputStream = startReadingFromPort(comPort);
                 while(true) {
-                    readBytes(inputStream);
+                    try {
+                        readBytes(inputStream);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        closePortQuietly(inputStream, comPort);
+                        String msg = "Trying to reopen port: ";
+                        try {
+                            comPort = getSerialPort(args);
+                            inputStream = startReadingFromPort(comPort);
+                            msg += " OK";
+                        } catch (Exception ex) {
+                            msg += " ERROR (" + ex.getMessage() + ")";
+                        }
+                        System.out.println(msg);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static InputStream startReadingFromPort(SerialPort comPort) {
+        InputStream inputStream;
+        comPort.openPort();
+        inputStream = comPort.getInputStream();
+        System.out.println("Starting to read data from " + comPort.getDescriptivePortName());
+        System.out.println("If nothing appears here, please check that scale is on (if it is not off).");
+        return inputStream;
+    }
+
+    private static void closePortQuietly(InputStream inputStream, SerialPort comPort) {
+        try {
+            comPort.closePort();
+        } catch (Exception ex) {
+            System.out.println("Problem closing port afer exception: " + ex.getMessage());
+        }
+        try {
+            inputStream.close();
+        } catch (IOException ex) {
+            // OK
         }
     }
 
@@ -58,6 +92,9 @@ public class PortReader {
         int idx = 0;
         for (SerialPort commPort : commPorts) {
             System.out.println((idx++)+ " PORT: " + commPort.getDescriptivePortName() +", " + commPort.getSystemPortName());
+            /*if (commPort.getDescriptivePortName().contains("CH340")) {
+                return commPort;
+            }*/
         }
         SerialPort comPort = commPorts[0];
         comPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 0, 0);
@@ -70,7 +107,7 @@ public class PortReader {
     }
 
 
-    private static boolean readBytes(InputStream inputStream) throws IOException, InterruptedException {
+    private static void readBytes(InputStream inputStream) throws IOException, InterruptedException {
         try {
             byte[] readBuffer = new byte[38*2];
             int readBytes = inputStream.read(readBuffer, 0, 38 * 2);
@@ -86,13 +123,13 @@ public class PortReader {
 0d 55 30 30 30 30 2e 30   0d 54 30 30 30 30 30 2e 	?<tab>U0000.0<tab>T00000.
 30 0d 0a                                          	0???
 */
-
                     List a = new ArrayList<>();
                     int bIdx = 0;
                     for (byte b : read) {
                         a.add(bIdx + ":  " + String.format("%2x",b) + " ... "  + " ... " + Integer.toString(b,2) + " ... " + b + " ... " + (char)(b));
                         bIdx++;
                     }
+
 /*
 '0' Net Weight 0x30
 '4' Tare Weight 0x34
@@ -107,14 +144,16 @@ public class PortReader {
                     int tareWeight = toWeight(read, 12);
                     int unitPrice = toUnitPrice(read, 20);
                     int totalPrice = toTotalPrice(read, 28);
-                    scaleRead(netWeight, tareWeight, unitPrice, totalPrice);
-                    return false;
+                    if (netWeight != 0) {
+                        scaleRead(netWeight, tareWeight, unitPrice, totalPrice);
+                    } else {
+                        System.out.println("Skipping 0 weight read...");
+                    }
                 }
             }
-            return false;
         } catch (Exception e) {
             System.out.println("ERROR: " + e.getMessage());
-            return false;
+            throw e;
         }
 
     }
