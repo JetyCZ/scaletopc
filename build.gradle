@@ -24,14 +24,13 @@ dependencies {
     implementation files('libs/jSerialComm-2.7.0.jar')
     testCompile files('libs/junit-4.12.jar')
 }
-jar {
-    manifest {
-        attributes "Main-Class": "cz.pardubicebezobalu.scaletopc.PortReader"
-    }
 
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
+mainClassName = "cz.pardubicebezobalu.scaletopc.PortReader"
+
+task fatJar(type: Jar) {
+    classifier = 'all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
 
 task runWithJavaExec(type: JavaExec) {

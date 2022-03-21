@@ -1,0 +1,1 @@
+java -cp .\libs\jSerialComm-2.7.0.jar;.\build\libs\scaletopc-1.0-SNAPSHOT.jar cz.pardubicebezobalu.scaletopc.PortReader
