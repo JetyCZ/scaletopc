@@ -109,6 +109,9 @@ public class PortReader {
 
     private static void readBytes(InputStream inputStream) throws IOException, InterruptedException {
         try {
+            // This avoids reading obsolete data
+            inputStream.skip(inputStream.available());
+            
             byte[] readBuffer = new byte[38*2];
             int readBytes = inputStream.read(readBuffer, 0, 38 * 2);
             int byteIdx = -1;
